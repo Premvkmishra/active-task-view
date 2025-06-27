@@ -19,6 +19,10 @@ export const ActivityLogs: React.FC = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [search, setSearch] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     fetchActivityLogs();
@@ -54,6 +58,23 @@ export const ActivityLogs: React.FC = () => {
     }
   };
 
+  // Filtering and sorting logic
+  const assignees = Array.from(new Set(logs.map(l => l.previous_assignee).filter(Boolean)));
+  const statuses = Array.from(new Set(logs.map(l => l.previous_status).filter(Boolean)));
+  const filteredLogs = logs
+    .filter(log =>
+      (!search || log.task_title.toLowerCase().includes(search.toLowerCase())) &&
+      (!filterAssignee || log.previous_assignee === filterAssignee) &&
+      (!filterStatus || log.previous_status === filterStatus)
+    )
+    .sort((a, b) => {
+      const valA = new Date(a.updated_at).getTime();
+      const valB = new Date(b.updated_at).getTime();
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -66,8 +87,37 @@ export const ActivityLogs: React.FC = () => {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900">Activity Logs</h1>
 
+      {/* Filter/Search/Sort Controls */}
+      <div className="flex flex-wrap gap-4 mb-4 items-end">
+        <div>
+          <label htmlFor="log-search" className="block text-sm font-medium">Search Task</label>
+          <input id="log-search" className="input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by task title..." />
+        </div>
+        <div>
+          <label htmlFor="log-filter-assignee" className="block text-sm font-medium">Previous Assignee</label>
+          <select id="log-filter-assignee" className="input" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+            <option value="">All</option>
+            {assignees.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="log-filter-status" className="block text-sm font-medium">Previous Status</label>
+          <select id="log-filter-status" className="input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">All</option>
+            {statuses.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="log-sort-order" className="block text-sm font-medium">Sort</label>
+          <select id="log-sort-order" className="input" value={sortOrder} onChange={e => setSortOrder(e.target.value as any)}>
+            <option value="desc">Newest First</option>
+            <option value="asc">Oldest First</option>
+          </select>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {logs.map((log) => (
+        {filteredLogs.map((log) => (
           <Card key={log.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex justify-between items-start">
@@ -106,7 +156,7 @@ export const ActivityLogs: React.FC = () => {
         ))}
       </div>
 
-      {logs.length === 0 && (
+      {filteredLogs.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-500 text-lg">No activity logs found</div>
         </div>

@@ -6,6 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getUserRole } from '@/lib/auth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select as UiSelect, SelectContent as UiSelectContent, SelectItem as UiSelectItem, SelectTrigger as UiSelectTrigger, SelectValue as UiSelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
 
 interface Task {
   id: number;
@@ -34,20 +41,59 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  // Modal state
+  const [open, setOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newStatus, setNewStatus] = useState<'TODO' | 'IN_PROGRESS' | 'DONE'>('TODO');
+  const [newDueDate, setNewDueDate] = useState('');
+  const [newAssignedTo, setNewAssignedTo] = useState('');
+  const [newProject, setNewProject] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [users, setUsers] = useState<{id: number, username: string}[]>([]);
+  const [projects, setProjects] = useState<{id: number, title: string}[]>([]);
+  // Edit modal state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editStatus, setEditStatus] = useState<'TODO' | 'IN_PROGRESS' | 'DONE'>('TODO');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editAssignedTo, setEditAssignedTo] = useState('');
+  const [editProject, setEditProject] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterProject, setFilterProject] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  // Get current user for contributor task creation
+  const [currentUser, setCurrentUser] = useState<{id: number, username: string} | null>(null);
 
   useEffect(() => {
     fetchTasks();
+    if (userRole === 'admin') {
+      fetchUsers();
+      fetchProjects();
+    }
+    if (userRole === 'contributor') {
+      const token = localStorage.getItem('access_token');
+      fetch(`${API_URL}/api/users/me/`, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => setCurrentUser(data));
+    }
   }, []);
 
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/api/tasks/`, {
+      const url = `${API_URL}/api/tasks/` + (showDeleted ? '?all=1' : '');
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setTasks(data.results || data);
@@ -67,6 +113,32 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/users/`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.results || data);
+      }
+    } catch {}
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/projects/`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data.results || data);
+      }
+    } catch {}
   };
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
@@ -125,6 +197,134 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
     }
   };
 
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      let assignedTo = newAssignedTo;
+      if (userRole === 'contributor' && currentUser) {
+        assignedTo = String(currentUser.id);
+      }
+      const response = await fetch(`${API_URL}/api/tasks/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          description: newDesc,
+          status: newStatus,
+          due_date: newDueDate,
+          assigned_to: assignedTo,
+          project: newProject,
+        }),
+      });
+      if (response.ok) {
+        toast({ title: 'Success', description: 'Task created.' });
+        setOpen(false);
+        setNewTitle('');
+        setNewDesc('');
+        setNewStatus('TODO');
+        setNewDueDate('');
+        setNewAssignedTo('');
+        setNewProject('');
+        fetchTasks();
+      } else {
+        toast({ title: 'Error', description: 'Failed to create task', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to connect to server', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openEditModal = (task: Task) => {
+    setEditTask(task);
+    setEditTitle(task.title);
+    setEditDesc(task.description);
+    setEditStatus(task.status);
+    setEditDueDate(task.due_date ? task.due_date.slice(0, 16) : '');
+    setEditAssignedTo(task.assigned_to ? String(users.find(u => u.username === task.assigned_to)?.id || '') : '');
+    setEditProject(projects.find(p => p.title === task.project_title)?.id ? String(projects.find(p => p.title === task.project_title)?.id) : '');
+    setEditOpen(true);
+  };
+
+  const handleEditTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTask) return;
+    setEditSubmitting(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/tasks/${editTask.id}/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDesc,
+          status: editStatus,
+          due_date: editDueDate,
+          assigned_to: editAssignedTo,
+          project: editProject,
+        }),
+      });
+      if (response.ok) {
+        toast({ title: 'Success', description: 'Task updated.' });
+        setEditOpen(false);
+        setEditTask(null);
+        fetchTasks();
+      } else {
+        toast({ title: 'Error', description: 'Failed to update task', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to connect to server', variant: 'destructive' });
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleRestore = async (id: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`${API_URL}/api/tasks/${id}/restore/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        toast({ title: 'Success', description: 'Task restored.' });
+        fetchTasks();
+      } else {
+        toast({ title: 'Error', description: 'Failed to restore task', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to connect to server', variant: 'destructive' });
+    }
+  };
+
+  // Filtering and sorting logic
+  const filteredTasks = tasks
+    .filter(task =>
+      (!search || task.title.toLowerCase().includes(search.toLowerCase()) || task.description.toLowerCase().includes(search.toLowerCase())) &&
+      (!filterStatus || task.status === filterStatus) &&
+      (!filterProject || String(projects.find(p => p.title === task.project_title)?.id) === filterProject)
+    )
+    .sort((a, b) => {
+      let valA = a[sortBy as keyof Task];
+      let valB = b[sortBy as keyof Task];
+      if (sortBy === 'due_date' || sortBy === 'created_at') {
+        valA = new Date(valA as string).getTime();
+        valB = new Date(valB as string).getTime();
+      }
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,17 +337,160 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-        {userRole === 'admin' && (
-          <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Task
-          </Button>
+        {(userRole === 'admin' || userRole === 'contributor') && (
+          <div className="flex items-center gap-4">
+            {userRole === 'admin' && (
+              <div className="flex items-center gap-2">
+                <Switch id="show-deleted-tasks" checked={showDeleted} onCheckedChange={setShowDeleted} />
+                <label htmlFor="show-deleted-tasks" className="text-sm">Show Deleted</label>
+              </div>
+            )}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Task</DialogTitle>
+                  <DialogDescription>Enter task details below.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddTask} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="task-title">Title</Label>
+                    <Input id="task-title" value={newTitle} onChange={e => setNewTitle(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="task-desc">Description</Label>
+                    <Textarea id="task-desc" value={newDesc} onChange={e => setNewDesc(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="task-status">Status</Label>
+                    <UiSelect value={newStatus} onValueChange={v => setNewStatus(v as any)}>
+                      <UiSelectTrigger id="task-status">
+                        <UiSelectValue />
+                      </UiSelectTrigger>
+                      <UiSelectContent>
+                        <UiSelectItem value="TODO">To Do</UiSelectItem>
+                        <UiSelectItem value="IN_PROGRESS">In Progress</UiSelectItem>
+                        <UiSelectItem value="DONE">Done</UiSelectItem>
+                      </UiSelectContent>
+                    </UiSelect>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="task-due-date">Due Date</Label>
+                    <Input id="task-due-date" type="datetime-local" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} required />
+                  </div>
+                  {userRole === 'admin' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="task-assigned-to">Assign To</Label>
+                      <UiSelect value={newAssignedTo} onValueChange={v => setNewAssignedTo(v)}>
+                        <UiSelectTrigger id="task-assigned-to">
+                          <UiSelectValue placeholder="Select user" />
+                        </UiSelectTrigger>
+                        <UiSelectContent>
+                          {users.map(u => (
+                            <UiSelectItem key={u.id} value={String(u.id)}>{u.username}</UiSelectItem>
+                          ))}
+                        </UiSelectContent>
+                      </UiSelect>
+                    </div>
+                  )}
+                  {userRole === 'contributor' && currentUser && (
+                    <input type="hidden" value={currentUser.id} />
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="task-project">Project</Label>
+                    <UiSelect value={newProject} onValueChange={v => setNewProject(v)}>
+                      <UiSelectTrigger id="task-project">
+                        <UiSelectValue placeholder="Select project" />
+                      </UiSelectTrigger>
+                      <UiSelectContent>
+                        {projects.map(p => (
+                          <UiSelectItem key={p.id} value={String(p.id)}>{p.title}</UiSelectItem>
+                        ))}
+                      </UiSelectContent>
+                    </UiSelect>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={submitting}>{submitting ? 'Adding...' : 'Add Task'}</Button>
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">Cancel</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         )}
       </div>
 
+      {/* Filter/Search/Sort Controls */}
+      <div className="flex flex-wrap gap-4 mb-4 items-end">
+        <div>
+          <Label htmlFor="task-search">Search</Label>
+          <Input id="task-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." />
+        </div>
+        <div>
+          <Label htmlFor="task-filter-status">Status</Label>
+          <UiSelect value={filterStatus} onValueChange={v => setFilterStatus(v)}>
+            <UiSelectTrigger id="task-filter-status">
+              <UiSelectValue placeholder="All" />
+            </UiSelectTrigger>
+            <UiSelectContent>
+              <UiSelectItem value="">All</UiSelectItem>
+              <UiSelectItem value="TODO">To Do</UiSelectItem>
+              <UiSelectItem value="IN_PROGRESS">In Progress</UiSelectItem>
+              <UiSelectItem value="DONE">Done</UiSelectItem>
+            </UiSelectContent>
+          </UiSelect>
+        </div>
+        <div>
+          <Label htmlFor="task-filter-project">Project</Label>
+          <UiSelect value={filterProject} onValueChange={v => setFilterProject(v)}>
+            <UiSelectTrigger id="task-filter-project">
+              <UiSelectValue placeholder="All" />
+            </UiSelectTrigger>
+            <UiSelectContent>
+              <UiSelectItem value="">All</UiSelectItem>
+              {projects.map(p => (
+                <UiSelectItem key={p.id} value={String(p.id)}>{p.title}</UiSelectItem>
+              ))}
+            </UiSelectContent>
+          </UiSelect>
+        </div>
+        <div>
+          <Label htmlFor="task-sort-by">Sort By</Label>
+          <UiSelect value={sortBy} onValueChange={v => setSortBy(v)}>
+            <UiSelectTrigger id="task-sort-by">
+              <UiSelectValue />
+            </UiSelectTrigger>
+            <UiSelectContent>
+              <UiSelectItem value="created_at">Created Date</UiSelectItem>
+              <UiSelectItem value="due_date">Due Date</UiSelectItem>
+              <UiSelectItem value="status">Status</UiSelectItem>
+            </UiSelectContent>
+          </UiSelect>
+        </div>
+        <div>
+          <Label htmlFor="task-sort-order">Order</Label>
+          <UiSelect value={sortOrder} onValueChange={v => setSortOrder(v as any)}>
+            <UiSelectTrigger id="task-sort-order">
+              <UiSelectValue />
+            </UiSelectTrigger>
+            <UiSelectContent>
+              <UiSelectItem value="asc">Ascending</UiSelectItem>
+              <UiSelectItem value="desc">Descending</UiSelectItem>
+            </UiSelectContent>
+          </UiSelect>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        {tasks.map((task) => (
-          <Card key={task.id} className="hover:shadow-md transition-shadow">
+        {filteredTasks.map((task) => (
+          <Card key={task.id} className={`hover:shadow-md transition-shadow ${task.is_deleted ? 'opacity-60' : ''}`}>
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
@@ -175,9 +518,9 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
                       </SelectContent>
                     </Select>
                   )}
-                  {userRole === 'admin' && (
+                  {userRole === 'admin' && !task.is_deleted && (
                     <>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => openEditModal(task)}>
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
@@ -188,6 +531,11 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
                         <Trash2 className="w-4 h-4 text-red-500" />
                       </Button>
                     </>
+                  )}
+                  {userRole === 'admin' && task.is_deleted && (
+                    <Button variant="outline" size="sm" onClick={() => handleRestore(task.id)}>
+                      Restore
+                    </Button>
                   )}
                 </div>
               </div>
@@ -213,10 +561,10 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
         ))}
       </div>
 
-      {tasks.length === 0 && (
+      {filteredTasks.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-500 text-lg">No tasks found</div>
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || userRole === 'contributor') && (
             <Button className="mt-4">
               <Plus className="w-4 h-4 mr-2" />
               Create your first task
@@ -224,6 +572,75 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
           )}
         </div>
       )}
+
+      {/* Edit Task Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>Update task details below.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditTask} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-title">Title</Label>
+              <Input id="edit-task-title" value={editTitle} onChange={e => setEditTitle(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-desc">Description</Label>
+              <Textarea id="edit-task-desc" value={editDesc} onChange={e => setEditDesc(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-status">Status</Label>
+              <UiSelect value={editStatus} onValueChange={v => setEditStatus(v as any)}>
+                <UiSelectTrigger id="edit-task-status">
+                  <UiSelectValue />
+                </UiSelectTrigger>
+                <UiSelectContent>
+                  <UiSelectItem value="TODO">To Do</UiSelectItem>
+                  <UiSelectItem value="IN_PROGRESS">In Progress</UiSelectItem>
+                  <UiSelectItem value="DONE">Done</UiSelectItem>
+                </UiSelectContent>
+              </UiSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-due-date">Due Date</Label>
+              <Input id="edit-task-due-date" type="datetime-local" value={editDueDate} onChange={e => setEditDueDate(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-assigned-to">Assign To</Label>
+              <UiSelect value={editAssignedTo} onValueChange={v => setEditAssignedTo(v)}>
+                <UiSelectTrigger id="edit-task-assigned-to">
+                  <UiSelectValue placeholder="Select user" />
+                </UiSelectTrigger>
+                <UiSelectContent>
+                  {users.map(u => (
+                    <UiSelectItem key={u.id} value={String(u.id)}>{u.username}</UiSelectItem>
+                  ))}
+                </UiSelectContent>
+              </UiSelect>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-task-project">Project</Label>
+              <UiSelect value={editProject} onValueChange={v => setEditProject(v)}>
+                <UiSelectTrigger id="edit-task-project">
+                  <UiSelectValue placeholder="Select project" />
+                </UiSelectTrigger>
+                <UiSelectContent>
+                  {projects.map(p => (
+                    <UiSelectItem key={p.id} value={String(p.id)}>{p.title}</UiSelectItem>
+                  ))}
+                </UiSelectContent>
+              </UiSelect>
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={editSubmitting}>{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">Cancel</Button>
+              </DialogClose>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
