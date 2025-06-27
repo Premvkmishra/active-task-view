@@ -64,8 +64,8 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterProject, setFilterProject] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterProject, setFilterProject] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   // Get current user for contributor task creation
@@ -310,8 +310,8 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const filteredTasks = tasks
     .filter(task =>
       (!search || task.title.toLowerCase().includes(search.toLowerCase()) || task.description.toLowerCase().includes(search.toLowerCase())) &&
-      (!filterStatus || task.status === filterStatus) &&
-      (!filterProject || String(projects.find(p => p.title === task.project_title)?.id) === filterProject)
+      (filterStatus === 'all' || task.status === filterStatus) &&
+      (filterProject === 'all' || String(projects.find(p => p.title === task.project_title)?.id) === filterProject)
     )
     .sort((a, b) => {
       let valA = a[sortBy as keyof Task];
@@ -440,7 +440,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
               <UiSelectValue placeholder="All" />
             </UiSelectTrigger>
             <UiSelectContent>
-              <UiSelectItem value="">All</UiSelectItem>
+              <UiSelectItem value="all">All</UiSelectItem>
               <UiSelectItem value="TODO">To Do</UiSelectItem>
               <UiSelectItem value="IN_PROGRESS">In Progress</UiSelectItem>
               <UiSelectItem value="DONE">Done</UiSelectItem>
@@ -454,7 +454,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
               <UiSelectValue placeholder="All" />
             </UiSelectTrigger>
             <UiSelectContent>
-              <UiSelectItem value="">All</UiSelectItem>
+              <UiSelectItem value="all">All</UiSelectItem>
               {projects.map(p => (
                 <UiSelectItem key={p.id} value={String(p.id)}>{p.title}</UiSelectItem>
               ))}

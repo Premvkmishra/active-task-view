@@ -20,8 +20,8 @@ export const ActivityLogs: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [filterAssignee, setFilterAssignee] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
@@ -64,8 +64,8 @@ export const ActivityLogs: React.FC = () => {
   const filteredLogs = logs
     .filter(log =>
       (!search || log.task_title.toLowerCase().includes(search.toLowerCase())) &&
-      (!filterAssignee || log.previous_assignee === filterAssignee) &&
-      (!filterStatus || log.previous_status === filterStatus)
+      (filterAssignee === 'all' || log.previous_assignee === filterAssignee) &&
+      (filterStatus === 'all' || log.previous_status === filterStatus)
     )
     .sort((a, b) => {
       const valA = new Date(a.updated_at).getTime();
@@ -96,14 +96,14 @@ export const ActivityLogs: React.FC = () => {
         <div>
           <label htmlFor="log-filter-assignee" className="block text-sm font-medium">Previous Assignee</label>
           <select id="log-filter-assignee" className="input" value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
-            <option value="">All</option>
+            <option value="all">All</option>
             {assignees.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         </div>
         <div>
           <label htmlFor="log-filter-status" className="block text-sm font-medium">Previous Status</label>
           <select id="log-filter-status" className="input" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All</option>
+            <option value="all">All</option>
             {statuses.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
           </select>
         </div>

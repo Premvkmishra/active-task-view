@@ -43,7 +43,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterOwner, setFilterOwner] = useState('');
+  const [filterOwner, setFilterOwner] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -197,7 +197,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
   const filteredProjects = projects
     .filter(project =>
       (!search || project.title.toLowerCase().includes(search.toLowerCase()) || project.description.toLowerCase().includes(search.toLowerCase())) &&
-      (!filterOwner || project.owner === filterOwner)
+      (filterOwner === 'all' || project.owner === filterOwner)
     )
     .sort((a, b) => {
       let valA = a[sortBy as keyof Project];
@@ -276,7 +276,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
               <UiSelectValue placeholder="All" />
             </UiSelectTrigger>
             <UiSelectContent>
-              <UiSelectItem value="">All</UiSelectItem>
+              <UiSelectItem value="all">All</UiSelectItem>
               {owners.map(owner => (
                 <UiSelectItem key={owner} value={owner}>{owner}</UiSelectItem>
               ))}
