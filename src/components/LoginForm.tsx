@@ -1,10 +1,11 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -18,7 +19,7 @@ export const LoginForm: React.FC = () => {
 
     try {
       // This would connect to your Django backend
-      const response = await fetch('/api/token/', {
+      const response = await fetch(`${API_URL}/api/token/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
