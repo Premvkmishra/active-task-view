@@ -363,31 +363,32 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
         </div>
       )}
 
-      {/* Edit Project Modal */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>Update project details below.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleEditProject} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-project-title">Title</Label>
-              <Input id="edit-project-title" value={editTitle} onChange={e => setEditTitle(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-project-desc">Description</Label>
-              <Textarea id="edit-project-desc" value={editDesc} onChange={e => setEditDesc(e.target.value)} required />
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={editSubmitting}>{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">Cancel</Button>
-              </DialogClose>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {userRole === 'admin' && (
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+              <DialogDescription>Update project details below.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditProject} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-project-title">Title</Label>
+                <Input id="edit-project-title" value={editTitle} onChange={e => setEditTitle(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-project-desc">Description</Label>
+                <Textarea id="edit-project-desc" value={editDesc} onChange={e => setEditDesc(e.target.value)} required />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={editSubmitting}>{editSubmitting ? 'Saving...' : 'Save Changes'}</Button>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
