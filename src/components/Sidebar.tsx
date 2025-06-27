@@ -16,10 +16,10 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ userRole }) => {
   const navItems = [
-    { name: 'Projects', href: '/projects', icon: FolderOpen, show: true },
-    { name: 'Tasks', href: '/tasks', icon: CheckSquare, show: true },
-    { name: 'Activity Logs', href: '/activity-logs', icon: Activity, show: userRole === 'admin' },
-    { name: 'Export Tasks', href: '/export', icon: Download, show: userRole === 'admin' },
+    { name: 'Projects', href: '/dashboard/projects', icon: FolderOpen, show: true },
+    { name: 'Tasks', href: '/dashboard/tasks', icon: CheckSquare, show: true },
+    { name: 'Activity Logs', href: '/dashboard/activity-logs', icon: Activity, show: userRole === 'admin' },
+    { name: 'Export Tasks', href: '/dashboard/export', icon: Download, show: userRole === 'admin' },
   ];
 
   const handleLogout = () => {

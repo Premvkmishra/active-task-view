@@ -27,11 +27,11 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<LoginForm />} />
           <Route path="/dashboard" element={<Layout userRole={userRole} />}>
-            <Route index element={<Navigate to="/projects" replace />} />
-            <Route path="/projects" element={<ProjectsList userRole={userRole} />} />
-            <Route path="/tasks" element={<TasksList userRole={userRole} />} />
-            <Route path="/activity-logs" element={<ActivityLogs />} />
-            <Route path="/export" element={<ExportTasks />} />
+            <Route index element={<Navigate to="/dashboard/projects" replace />} />
+            <Route path="projects" element={<ProjectsList userRole={userRole} />} />
+            <Route path="tasks" element={<TasksList userRole={userRole} />} />
+            <Route path="activity-logs" element={<ActivityLogs />} />
+            <Route path="export" element={<ExportTasks />} />
           </Route>
           <Route path="/" element={<Index />} />
           <Route path="*" element={<NotFound />} />
