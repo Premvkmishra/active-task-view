@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getUserRole } from '@/lib/auth';
 
 interface Project {
   id: number;
@@ -19,6 +19,8 @@ interface ProjectsListProps {
   userRole: 'admin' | 'contributor';
 }
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
   const fetchProjects = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/projects/', {
+      const response = await fetch(`${API_URL}/api/projects/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -63,7 +65,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({ userRole }) => {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/projects/${id}/`, {
+      const response = await fetch(`${API_URL}/api/projects/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

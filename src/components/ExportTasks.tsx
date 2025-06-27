@@ -1,9 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Clock, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const ExportTasks: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -13,7 +14,7 @@ export const ExportTasks: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/tasks/export/', {
+      const response = await fetch(`${API_URL}/api/tasks/export/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

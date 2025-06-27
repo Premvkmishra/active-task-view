@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Calendar, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getUserRole } from '@/lib/auth';
 
 interface Task {
   id: number;
@@ -28,6 +28,8 @@ const statusColors = {
   DONE: 'bg-green-100 text-green-800',
 };
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/tasks/', {
+      const response = await fetch(`${API_URL}/api/tasks/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -70,7 +72,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/tasks/${id}/`, {
+      const response = await fetch(`${API_URL}/api/tasks/${id}/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,7 +102,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
 
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`/api/tasks/${id}/`, {
+      const response = await fetch(`${API_URL}/api/tasks/${id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

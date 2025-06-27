@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,8 @@ interface ActivityLog {
   updated_at: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export const ActivityLogs: React.FC = () => {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export const ActivityLogs: React.FC = () => {
   const fetchActivityLogs = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('/api/activity-logs/', {
+      const response = await fetch(`${API_URL}/api/activity-logs/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
