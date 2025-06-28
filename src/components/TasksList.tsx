@@ -144,12 +144,17 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     try {
       const token = localStorage.getItem('access_token');
+      const url = `${API_URL}/api/tasks/${id}/update_status/`;
+      
+      console.log('=== STATUS UPDATE DEBUG ===');
       console.log(`Updating task ${id} status to ${newStatus}`);
       console.log('Request method: PATCH');
-      console.log('Request URL:', `${API_URL}/api/tasks/${id}/update_status/`);
+      console.log('Request URL:', url);
       console.log('Request body:', JSON.stringify({ status: newStatus }));
+      console.log('User role:', userRole);
+      console.log('Current user:', currentUser);
       
-      const response = await fetch(`${API_URL}/api/tasks/${id}/update_status/`, {
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

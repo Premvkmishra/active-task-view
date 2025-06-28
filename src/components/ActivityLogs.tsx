@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Calendar, User, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/auth';
 
 interface ActivityLog {
   id: number;
@@ -30,24 +31,35 @@ export const ActivityLogs: React.FC = () => {
 
   const fetchActivityLogs = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(`${API_URL}/api/activity-logs/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await apiRequest(`${API_URL}/api/activity-logs/`);
 
       if (response.ok) {
         const data = await response.json();
         setLogs(data.results || data);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch activity logs",
-          variant: "destructive",
-        });
+        const errorData = await response.json();
+        console.error('Activity logs error:', errorData);
+        
+        if (errorData.code === 'token_not_valid') {
+          toast({
+            title: "Authentication Error",
+            description: "Please log in again to view activity logs",
+            variant: "destructive",
+          });
+          // Redirect to login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+        } else {
+          toast({
+            title: "Error",
+            description: errorData.detail || "Failed to fetch activity logs",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
+      console.error('Activity logs exception:', error);
       toast({
         title: "Error",
         description: "Failed to connect to server",
