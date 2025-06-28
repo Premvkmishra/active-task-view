@@ -186,4 +186,19 @@ export async function apiRequest(url: string, options: RequestInit = {}): Promis
   }
 
   return response;
+}
+
+export function logout(): void {
+  // Clear only authentication-related data
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  
+  // Redirect to login page
+  window.location.href = '/login';
+}
+
+export function clearAuthTokens(): void {
+  // Clear only authentication tokens
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
 } 

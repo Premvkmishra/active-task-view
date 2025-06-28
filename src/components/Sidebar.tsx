@@ -8,6 +8,7 @@ import {
   LogOut,
   User
 } from 'lucide-react';
+import { logout } from '@/lib/auth';
 
 interface SidebarProps {
   userRole: 'admin' | 'contributor';
@@ -22,9 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userRole }) => {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    window.location.href = '/login';
+    logout();
   };
 
   return (
