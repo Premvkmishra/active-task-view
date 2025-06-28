@@ -144,6 +144,8 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     try {
       const token = localStorage.getItem('access_token');
+      console.log(`Updating task ${id} status to ${newStatus}`);
+      
       const response = await fetch(`${API_URL}/api/tasks/${id}/`, {
         method: 'PATCH',
         headers: {
@@ -153,14 +155,25 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
         body: JSON.stringify({ status: newStatus }),
       });
 
+      console.log('Status update response:', response.status, response.statusText);
+
       if (response.ok) {
         toast({
           title: "Success",
           description: "Task status updated successfully",
         });
         fetchTasks();
+      } else {
+        const errorData = await response.json();
+        console.error('Status update error:', errorData);
+        toast({
+          title: "Error",
+          description: errorData.detail || "Failed to update task status",
+          variant: "destructive",
+        });
       }
     } catch (error) {
+      console.error('Status update exception:', error);
       toast({
         title: "Error",
         description: "Failed to update task status",
