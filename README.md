@@ -4,6 +4,24 @@
 
 **URL**: https://lovable.dev/projects/6f27dc2e-7c44-429e-842d-111172672f2c
 
+## Environment Variables
+
+Before deploying, make sure to set the following environment variable:
+
+```bash
+VITE_API_URL=https://your-django-api-url.com
+```
+
+For development, you can use:
+```bash
+VITE_API_URL=http://localhost:8000
+```
+
+**Important**: The infinite loading issue was caused by authentication redirects. This has been fixed by:
+1. Removing `window.location.href` redirects
+2. Using React Router navigation instead
+3. Implementing proper authentication state management
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

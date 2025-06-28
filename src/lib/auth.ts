@@ -177,10 +177,10 @@ export async function apiRequest(url: string, options: RequestInit = {}): Promis
         headers: newHeaders,
       });
     } else {
-      // If refresh failed, redirect to login
+      // If refresh failed, clear auth data and trigger update
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      window.location.href = '/login';
+      triggerAuthUpdate();
       throw new Error('Authentication failed');
     }
   }
@@ -193,8 +193,8 @@ export function logout(): void {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   
-  // Force a page reload to reset the app state
-  window.location.reload();
+  // Trigger auth state update instead of reloading
+  triggerAuthUpdate();
 }
 
 export function clearAuthTokens(): void {
@@ -243,4 +243,9 @@ if (typeof window !== 'undefined') {
   (window as any).logout = logout;
   (window as any).getUserRole = getUserRole;
   (window as any).testTokenEndpoint = testTokenEndpoint;
+}
+
+export function triggerAuthUpdate() {
+  // Dispatch a custom event that the App component can listen to
+  window.dispatchEvent(new CustomEvent('authStateChanged'));
 } 

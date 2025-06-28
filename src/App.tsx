@@ -19,14 +19,24 @@ const queryClient = new QueryClient();
 const App = () => {
   const [userRole, setUserRole] = useState<'admin' | 'contributor'>('contributor');
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Debug: Log environment variables
   useEffect(() => {
-    const initializeApp = async () => {
+    console.log('API URL:', import.meta.env.VITE_API_URL);
+    console.log('Environment:', import.meta.env.MODE);
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      console.log('Initializing app...');
       const token = localStorage.getItem('access_token');
       
-      // If no token, redirect to login
+      // If no token, user is not authenticated
       if (!token) {
-        window.location.href = '/login';
+        console.log('No token found, user not authenticated');
+        setIsAuthenticated(false);
+        setIsLoading(false);
         return;
       }
       
@@ -38,10 +48,11 @@ const App = () => {
         const refreshSuccess = await refreshAccessToken();
         
         if (!refreshSuccess) {
-          console.log('Failed to refresh token, redirecting to login');
+          console.log('Failed to refresh token, clearing auth data');
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          setIsAuthenticated(false);
+          setIsLoading(false);
           return;
         }
       }
@@ -55,11 +66,33 @@ const App = () => {
         role = await getUserRoleFromAPI();
       }
       
+      console.log('Setting user as authenticated with role:', role);
       setUserRole(role || 'contributor');
+      setIsAuthenticated(true);
       setIsLoading(false);
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      // On error, assume user is not authenticated
+      setIsAuthenticated(false);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  useEffect(() => {
+    // Listen for auth state changes
+    const handleAuthChange = () => {
+      initializeApp();
     };
 
-    initializeApp();
+    window.addEventListener('authStateChanged', handleAuthChange);
+    
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange);
+    };
   }, []);
 
   if (isLoading) {
@@ -77,15 +110,21 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/dashboard" element={<Layout userRole={userRole} />}>
+            <Route path="/login" element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginForm />
+            } />
+            <Route path="/dashboard" element={
+              isAuthenticated ? <Layout userRole={userRole} /> : <Navigate to="/login" replace />
+            }>
               <Route index element={<Navigate to="/dashboard/projects" replace />} />
               <Route path="projects" element={<ProjectsList userRole={userRole} />} />
               <Route path="tasks" element={<TasksList userRole={userRole} />} />
               <Route path="activity-logs" element={<ActivityLogs />} />
               <Route path="export" element={<ExportTasks />} />
             </Route>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Index />
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
