@@ -193,12 +193,54 @@ export function logout(): void {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   
-  // Redirect to login page
-  window.location.href = '/login';
+  // Force a page reload to reset the app state
+  window.location.reload();
 }
 
 export function clearAuthTokens(): void {
   // Clear only authentication tokens
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
+}
+
+// Test function to check what fields are in the JWT token
+export async function testTokenEndpoint(username: string, password: string): Promise<void> {
+  try {
+    console.log('Testing token endpoint...');
+    const response = await fetch(`${API_URL}/api/token/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Token response:', data);
+      
+      // Decode the access token
+      const decoded: any = jwtDecode(data.access);
+      console.log('Decoded token fields:', Object.keys(decoded));
+      console.log('Full decoded token:', decoded);
+      
+      // Check for admin fields
+      console.log('is_staff in token:', decoded.is_staff);
+      console.log('is_superuser in token:', decoded.is_superuser);
+      console.log('username in token:', decoded.username);
+      console.log('user_id in token:', decoded.user_id);
+    } else {
+      console.error('Token request failed:', response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error('Error testing token endpoint:', error);
+  }
+}
+
+// Make functions available globally for testing
+if (typeof window !== 'undefined') {
+  (window as any).clearAuthTokens = clearAuthTokens;
+  (window as any).logout = logout;
+  (window as any).getUserRole = getUserRole;
+  (window as any).testTokenEndpoint = testTokenEndpoint;
 } 
