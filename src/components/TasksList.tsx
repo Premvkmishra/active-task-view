@@ -145,6 +145,9 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
     try {
       const token = localStorage.getItem('access_token');
       console.log(`Updating task ${id} status to ${newStatus}`);
+      console.log('Request method: PATCH');
+      console.log('Request URL:', `${API_URL}/api/tasks/${id}/`);
+      console.log('Request body:', JSON.stringify({ status: newStatus }));
       
       const response = await fetch(`${API_URL}/api/tasks/${id}/`, {
         method: 'PATCH',
@@ -156,6 +159,7 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
       });
 
       console.log('Status update response:', response.status, response.statusText);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         toast({
