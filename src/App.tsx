@@ -12,7 +12,7 @@ import { ActivityLogs } from "./components/ActivityLogs";
 import { ExportTasks } from "./components/ExportTasks";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { getUserRole } from "@/lib/auth";
+import { getUserRole, isTokenValid, refreshAccessToken } from "@/lib/auth";
 
 const queryClient = new QueryClient();
 
@@ -21,9 +21,37 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const role = getUserRole();
-    setUserRole(role || 'contributor');
-    setIsLoading(false);
+    const initializeApp = async () => {
+      const token = localStorage.getItem('access_token');
+      
+      // If no token, redirect to login
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      
+      // Check if token is valid
+      if (!isTokenValid()) {
+        console.log('Token is invalid or expired, trying to refresh...');
+        
+        // Try to refresh the token
+        const refreshSuccess = await refreshAccessToken();
+        
+        if (!refreshSuccess) {
+          console.log('Failed to refresh token, redirecting to login');
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.location.href = '/login';
+          return;
+        }
+      }
+      
+      const role = getUserRole();
+      setUserRole(role || 'contributor');
+      setIsLoading(false);
+    };
+
+    initializeApp();
   }, []);
 
   if (isLoading) {
