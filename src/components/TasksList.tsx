@@ -146,10 +146,10 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
       const token = localStorage.getItem('access_token');
       console.log(`Updating task ${id} status to ${newStatus}`);
       console.log('Request method: PATCH');
-      console.log('Request URL:', `${API_URL}/api/tasks/${id}/`);
+      console.log('Request URL:', `${API_URL}/api/tasks/${id}/update_status/`);
       console.log('Request body:', JSON.stringify({ status: newStatus }));
       
-      const response = await fetch(`${API_URL}/api/tasks/${id}/`, {
+      const response = await fetch(`${API_URL}/api/tasks/${id}/update_status/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -162,6 +162,8 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log('Status update success:', responseData);
         toast({
           title: "Success",
           description: "Task status updated successfully",
@@ -520,21 +522,20 @@ export const TasksList: React.FC<TasksListProps> = ({ userRole }) => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {userRole === 'contributor' && (
-                    <Select
-                      value={task.status}
-                      onValueChange={(value) => handleStatusUpdate(task.id, value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TODO">To Do</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                        <SelectItem value="DONE">Done</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Select
+                    value={task.status}
+                    onValueChange={(value) => handleStatusUpdate(task.id, value)}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TODO">To Do</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="DONE">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
                   {userRole === 'admin' && !task.is_deleted && (
                     <>
                       <Button variant="ghost" size="sm" onClick={() => openEditModal(task)}>
