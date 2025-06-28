@@ -12,12 +12,64 @@ export function getUserRole(): 'admin' | 'contributor' | null {
   try {
     const decoded: any = jwtDecode(token);
     console.log('JWT Token decoded:', decoded);
-    console.log('is_staff field:', decoded.is_staff);
-    return decoded.is_staff ? 'admin' : 'contributor';
+    console.log('All available fields:', Object.keys(decoded));
+    
+    // Check multiple possible field names for admin status
+    const isAdmin = decoded.is_staff || 
+                   decoded.is_superuser || 
+                   decoded.is_admin || 
+                   decoded.admin || 
+                   decoded.role === 'admin' ||
+                   decoded.user_type === 'admin';
+    
+    console.log('is_staff:', decoded.is_staff);
+    console.log('is_superuser:', decoded.is_superuser);
+    console.log('is_admin:', decoded.is_admin);
+    console.log('admin:', decoded.admin);
+    console.log('role:', decoded.role);
+    console.log('user_type:', decoded.user_type);
+    console.log('Final isAdmin result:', isAdmin);
+    
+    return isAdmin ? 'admin' : 'contributor';
   } catch (error) {
     console.error('Error decoding JWT token:', error);
     return null;
   }
+}
+
+// Fallback function to get user role from API if JWT doesn't contain it
+export async function getUserRoleFromAPI(): Promise<'admin' | 'contributor' | null> {
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) return null;
+    
+    const response = await fetch(`${API_URL}/api/users/me/`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (response.ok) {
+      const userData = await response.json();
+      console.log('User data from API:', userData);
+      
+      // Check if user has admin permissions by trying to access admin-only endpoint
+      const adminTestResponse = await fetch(`${API_URL}/api/activity-logs/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      const isAdmin = adminTestResponse.status === 200;
+      console.log('Admin test result:', isAdmin);
+      
+      return isAdmin ? 'admin' : 'contributor';
+    }
+  } catch (error) {
+    console.error('Error getting user role from API:', error);
+  }
+  
+  return null;
 }
 
 export function getCurrentUser(): { id: number; username: string } | null {

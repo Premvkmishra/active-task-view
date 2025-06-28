@@ -12,7 +12,7 @@ import { ActivityLogs } from "./components/ActivityLogs";
 import { ExportTasks } from "./components/ExportTasks";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { getUserRole, isTokenValid, refreshAccessToken } from "@/lib/auth";
+import { getUserRole, isTokenValid, refreshAccessToken, getUserRoleFromAPI } from "@/lib/auth";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +46,15 @@ const App = () => {
         }
       }
       
-      const role = getUserRole();
+      // Try to get role from JWT token first
+      let role = getUserRole();
+      
+      // If JWT doesn't contain role info, try API fallback
+      if (!role) {
+        console.log('JWT token doesn\'t contain role info, trying API fallback...');
+        role = await getUserRoleFromAPI();
+      }
+      
       setUserRole(role || 'contributor');
       setIsLoading(false);
     };
